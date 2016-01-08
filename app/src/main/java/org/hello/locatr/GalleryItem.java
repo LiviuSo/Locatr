@@ -10,6 +10,8 @@ public class GalleryItem {
     private String mId;
     private String mUrl;
     private String mOwner;
+    private double mLat;
+    private double mLon;
 
     @Override
     public String toString() {
@@ -56,4 +58,19 @@ public class GalleryItem {
                 .build();
     }
 
+    public double getLat() {
+        return mLat;
+    }
+
+    public void setLat(double mLat) {
+        this.mLat = mLat;
+    }
+
+    public double getLon() {
+        return mLon;
+    }
+
+    public void setLon(double mLon) {
+        this.mLon = mLon;
+    }
 } // end class GalleryItem
