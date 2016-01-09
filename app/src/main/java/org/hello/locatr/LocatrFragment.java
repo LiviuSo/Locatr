@@ -4,20 +4,14 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.hardware.Camera;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -28,19 +22,18 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Created by lsoco_user on 1/7/2016.
- */
 public class LocatrFragment extends SupportMapFragment {
     private static final String TAG = "LocatrFragment";
 
-//    private ImageView mImageView;
     private GoogleApiClient mClient;
     private GoogleMap mMap;
     private Bitmap mMapImage;
@@ -120,12 +113,10 @@ public class LocatrFragment extends SupportMapFragment {
         request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         request.setNumUpdates(1);
         request.setInterval(0);
-
-        // extra
+        Log.i(TAG, "Request: " + request);
         if (ActivityCompat.checkSelfPermission(getActivity(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -136,23 +127,36 @@ public class LocatrFragment extends SupportMapFragment {
             return;
         }
         LocationServices.FusedLocationApi
-                .requestLocationUpdates(mClient, request, new LocationListener() {
+                .requestLocationUpdates(mClient, request,
+                        new LocationListener() {
                     @Override
                     public void onLocationChanged(Location location) {
-                        Log.i(TAG, "Got a fix: " + location);
+                        Log.i("LocatrFragment", "Got a fix: " + location);
                         new SearchTask().execute(location);
                     }
                 });
-
     }
 
     private void updateUI() {
-        if(mMap == null || mMapImage == null) {
+        if (mMap == null || mMapImage == null) {
             return;
         }
 
-        LatLng itemPoint = new LatLng(mMapItem.getLat(), mMapItem.getLon() );
-        LatLng myPoint = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        LatLng itemPoint = new LatLng(mMapItem.getLat(), mMapItem.getLon());
+        LatLng myPoint = new LatLng(
+                mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+        BitmapDescriptor itemBitmap = BitmapDescriptorFactory.fromBitmap(mMapImage);
+        MarkerOptions itemMarker = new MarkerOptions()
+                .position(itemPoint)
+                .icon(itemBitmap);
+        MarkerOptions myMarker = new MarkerOptions()
+                .position(myPoint);
+
+        mMap.clear();
+        mMap.addMarker(itemMarker);
+        mMap.addMarker(myMarker);
+
         LatLngBounds bounds = new LatLngBounds.Builder()
                 .include(itemPoint)
                 .include(myPoint)
@@ -163,31 +167,29 @@ public class LocatrFragment extends SupportMapFragment {
         mMap.animateCamera(update);
     }
 
-    private class SearchTask extends AsyncTask<Location, Void, Void> {
-        private GalleryItem mGalleryItem;
+    private class SearchTask extends AsyncTask<Location,Void,Void> {
         private Bitmap mBitmap;
+        private GalleryItem mGalleryItem;
         private Location mLocation;
 
         @Override
-        protected Void doInBackground(Location...params) {
+        protected Void doInBackground(Location... params) {
             mLocation = params[0];
             FlickrFetchr fetchr = new FlickrFetchr();
             List<GalleryItem> items = fetchr.searchPhotos(params[0]);
 
-            if(items.size() == 0) {
+            if (items.size() == 0) {
                 return null;
             }
 
             mGalleryItem = items.get(0);
 
-            // decode
             try {
                 byte[] bytes = fetchr.getUrlBytes(mGalleryItem.getUrl());
                 mBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
             } catch (IOException ioe) {
-                Log.i(TAG, "Unable to download bitmap", ioe);
+                Log.i("SearchTask", "Unable to download bitmap", ioe);
             }
-
             return null;
         }
 
@@ -199,5 +201,5 @@ public class LocatrFragment extends SupportMapFragment {
 
             updateUI();
         }
-    } // end class SearchTask
+    }
 }
